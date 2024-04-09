@@ -27,13 +27,13 @@ def find_version(*file_paths):
 setup(
     name='sparkproxy',
     version=find_version("sparkproxy/__init__.py"),
-    description='Sparkproxy OpenApi SDK',
-    long_description='see:\nhttps://github.com/yungoo/spark-proxy/sdk/spark-sdk-python\n',
+    description='Spark proxy OpenApi SDK',
+    long_description='see:\nhttps://github.com/yungoo/spark-sdk-python\n',
     author='Spark Proxy Co., Ltd.',
     author_email='sdk@sparkproxy.com',
     maintainer_email='support@sparkproxy.com',
     license='MIT',
-    url='https://github.com/yungoo/spark-proxy/sdk/spark-sdk-python',
+    url='https://github.com/yungoo/spark-sdk-python',
     platforms='any',
     packages=find_packages(),
     classifiers=[
