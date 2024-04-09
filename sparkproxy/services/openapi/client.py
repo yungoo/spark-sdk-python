@@ -141,9 +141,9 @@ class SparkProxyClient(object):
         """
         ret, info = self.__post('GetInstance', {"instanceId": instance_id})
         if ret is not None:
-            password = ret['data']['IpInfo']["password"]
+            password = ret['data']["password"]
             if len(password) > 0:
-                ret['data']['IpInfo']["password"] = self.auth.decrypt(password)
+                ret['data']["password"] = self.auth.decrypt(password)
         return ret, info
 
     def __request_params(self, method, args):
