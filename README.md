@@ -1,7 +1,7 @@
-# Qiniu Cloud SDK for Python
+# Sparkproxy OpenApi SDK for Python
 
 [![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg)](LICENSE)
-[![GitHub release](https://img.shields.io/github/v/tag/qiniu/python-sdk.svg?label=release)](https://github.com/yungoo/spark-sdk-python/releases)
+[![GitHub release](https://img.shields.io/github/v/tag/sparkpoxy/spark-sdk-python.svg?label=release)](https://github.com/yungoo/spark-sdk-python/releases)
 [![Latest Stable Version](https://img.shields.io/pypi/v/sparkproxy.svg)](https://pypi.python.org/pypi/spark-proxy)
 [![Download Times](https://img.shields.io/pypi/dm/sparkproxy.svg)](https://pypi.python.org/pypi/spark-proxy)
 
@@ -17,7 +17,7 @@ $ pip install sparkproxy
 
 | sparkproxy SDK版本 |              Python 版本               |
 |:----------------:| :------------------------------------: |
-|       1.x        | 2.7, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9 |
+|       0.x        | 2.7, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9 |
 
 ## 使用方法
 
