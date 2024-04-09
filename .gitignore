@@ -1,3 +1,4 @@
 dist/
-
+build/
+sparkproxy.egg-info/
 .idea
