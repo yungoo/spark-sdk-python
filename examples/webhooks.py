@@ -1,15 +1,11 @@
 import os
+
 from flask import Flask, request
-import time
-from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives import hashes
-import base64
 
-webhook_secret = os.environ.get("WEBHOOK_SECRET")
+from sparkproxy import Auth
 
-rsaPublicKey = '''-----BEGIN PUBLIC KEY-----
+# sparkproxy提供的公钥，用于验证同步接口的请求合法性
+rsa_public_key = '''-----BEGIN PUBLIC KEY-----
 MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDEovKByCtmQlJJBsZzSyc97gI1
 Dp62XP8SrvUPBqGlWGEKNh60n2njcUUIkMDitM2yb1vuRluu3Mzk/TvaE23JOMqA
 0HPsd7IG9rNCyn7vcRXvVj1jLTVw/J+f7FJB4OzZqmOEe8kq69WCP4JIkXPvAT53
@@ -17,41 +13,11 @@ wvarJGl6cincWuZvIwIDAQAB
 -----END PUBLIC KEY-----
 '''
 
-__public_key = serialization.load_pem_public_key(
-    rsaPublicKey.encode(),
-    backend=None  # Uses the default backend
-)
+with open("key.pem", 'rb') as pem_file:
+    private_key = pem_file.read().decode("utf-8")
 
-
-def verify_signature(supplierNo, sign, reqId, timestamp):
-    if not supplierNo:
-        raise ValueError(f"签名参数supplierNo未提供。reqId: {reqId}")
-    if not sign:
-        raise ValueError(f"签名参数sign未提供。reqId: {reqId}")
-
-    if time.time() - timestamp > 600:
-        raise ValueError(f"签名已过期。reqId: {reqId}")
-
-    str_to_sign = f"supplierNo={supplierNo}&timestamp={timestamp}"
-
-    try:
-        decoded_sign = base64.b64decode(sign)
-    except Exception as e:
-        raise ValueError(f"签名解码失败: {e}")
-
-    try:
-        __public_key.verify(
-            decoded_sign,
-            str_to_sign.encode(),
-            padding.PKCS1v15(),
-            hashes.SHA256()
-        )
-    except InvalidSignature:
-        raise ValueError(f"签名校验错误。reqId: {reqId}")
-    except Exception as e:
-        raise ValueError(f"签名验证过程中出现问题: {e}")
-
-    return None
+supplier_no = 'test0001'
+auth = Auth(supplier_no=supplier_no, private_key=private_key, public_key=rsa_public_key)
 
 
 def verify_request(req):
@@ -59,7 +25,7 @@ def verify_request(req):
         params = req.json
 
         try:
-            verify_signature(params['supplierNo'], params['sign'], params['timestamp'])
+            auth.verify_callback(params['supplierNo'], params['sign'], params['timestamp'])
         except ValueError:
             return "Bad signature", 400
     else:
@@ -85,6 +51,15 @@ def receiveSyncInstances():
     ret, code = verify_request(request)
     if ret is not None:
         return ret, code
+
+    ret = request.json
+    if ret is not None:
+        for ipInfo in ret['data']['ipInfo']:
+            password = ipInfo["password"]
+            if len(password) > 0:
+                ipInfo["password"] = auth.decrypt(password)
+
+    print(ret)
 
     return "", 200
 

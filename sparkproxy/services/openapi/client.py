@@ -33,7 +33,7 @@ class SparkProxyClient(object):
         else:
             self.host = host
 
-    def get_product_stock(self, proxy_type, country_code = None, city_code = None):
+    def get_product_stock(self, proxy_type, country_code=None, city_code=None):
         """获取商品库存
 
         列出当前所有在售的商品及其库存信息。
@@ -43,7 +43,8 @@ class SparkProxyClient(object):
             - result          成功返回服务组列表[<product1>, <product1>, ...]，失败返回{"error": "<errMsg string>"}
             - ResponseInfo    请求的Response信息
         """
-        return self.__post('GetProductStock', {"proxyType": proxy_type, "countryCode": country_code, "cityCode": city_code})
+        return self.__post('GetProductStock',
+                           {"proxyType": proxy_type, "countryCode": country_code, "cityCode": city_code})
 
     def create_proxy(self, req_order_no, sku, amount, duration, unit, country_code, city_code):
         """创建代理实例
@@ -65,7 +66,8 @@ class SparkProxyClient(object):
             - ResponseInfo    请求的Response信息
         """
         return self.__post('CreateProxy', {"reqOrderNo": req_order_no, "sku": sku, "amount": amount,
-                                           "duration": duration, "unit": unit, "countryCode": country_code, "cityCode": city_code})
+                                           "duration": duration, "unit": unit, "countryCode": country_code,
+                                           "cityCode": city_code})
 
     def renew_proxy(self, req_order_no, instances):
         """续费代理实例
@@ -80,7 +82,13 @@ class SparkProxyClient(object):
             - result          成功返回空dict{}，失败返回{"error": "<errMsg string>"}
             - ResponseInfo    请求的Response信息
         """
-        return self.__post('RenewProxy', {"reqOrderNo": req_order_no, "instances": instances})
+        ret, info = self.__post('RenewProxy', {"reqOrderNo": req_order_no, "instances": instances})
+        if ret is not None:
+            for ipInfo in ret['data']['ipInfo']:
+                password = ipInfo["password"]
+                if len(password) > 0:
+                    ipInfo["password"] = self.auth.decrypt(password)
+        return ret, info
 
     def delete_proxy(self, req_order_no, instances):
         """删除代理实例
@@ -110,7 +118,13 @@ class SparkProxyClient(object):
             - result          成功返回空dict{}，失败返回{"error": "<errMsg string>"}
             - ResponseInfo    请求的Response信息
         """
-        return self.__post('GetOrder', {"reqOrderNo": req_order_no})
+        ret, info = self.__post('GetOrder', {"reqOrderNo": req_order_no})
+        if ret is not None:
+            for ipInfo in ret['data']['ipInfo']:
+                password = ipInfo["password"]
+                if len(password) > 0:
+                    ipInfo["password"] = self.auth.decrypt(password)
+        return ret, info
 
     def get_instance(self, instance_id):
         """获取订单信息
@@ -125,7 +139,12 @@ class SparkProxyClient(object):
             - result          成功返回空dict{}，失败返回{"error": "<errMsg string>"}
             - ResponseInfo    请求的Response信息
         """
-        return self.__post('GetInstance', {"instanceId": instance_id})
+        ret, info = self.__post('GetInstance', {"instanceId": instance_id})
+        if ret is not None:
+            password = ret['data']['IpInfo']["password"]
+            if len(password) > 0:
+                ret['data']['IpInfo']["password"] = self.auth.decrypt(password)
+        return ret, info
 
     def __request_params(self, method, args):
         base_params = {

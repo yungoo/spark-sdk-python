@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding
+import time
+
+from cryptography.exceptions import InvalidSignature
+
+from sparkproxy.rsa import rsa_load_pem_private_key, rsa_sign, rsa_decrypt, rsa_verify, rsa_load_pem_public_key
 
 
 class Auth(object):
@@ -12,23 +14,16 @@ class Auth(object):
     Attributes:
         __supplier_no: 供应商编号，双方协商获得
         __private_key: RSA私匙，公钥交给SparkProxy，调用接口时使用私钥签名，sparkproxy使用公钥验签
+        __public_key: RSA公钥，SparkProxy提供的公钥
     """
 
-    def __init__(self, supplier_no, private_key, disable_timestamp_signature=None):
+    def __init__(self, supplier_no, private_key, public_key = None):
         """初始化Auth类"""
         self.__checkKey(supplier_no, private_key)
         self.__supplier_no = supplier_no
-        self.__private_key = self.__load_rsa_private_key(private_key)
-        self.disable_timestamp_signature = disable_timestamp_signature
-
-    @staticmethod
-    def __load_rsa_private_key(private_key):
-        private_key = serialization.load_pem_private_key(
-            private_key.encode(),
-            password=None,
-            backend=default_backend()
-        )
-        return private_key
+        self.__private_key = rsa_load_pem_private_key(private_key)
+        if public_key is not None:
+            self.__public_key = rsa_load_pem_public_key(public_key)
 
     def get_supplier_no(self):
         return self.__supplier_no
@@ -47,35 +42,43 @@ class Auth(object):
         message = 'supplierNo={0}&timestamp={1}'.format(req["supplierNo"], req["timestamp"])
 
         # 使用私钥对哈希值进行签名
-        signature = self.__private_key.sign(
-            message.encode(),
-            padding.PKCS1v15(),
-            hashes.SHA256()
-        )
-        return signature.hex()
+        return rsa_sign(message, self.__private_key)
 
     @staticmethod
     def __checkKey(access_key, secret_key):
         if not (access_key and secret_key):
             raise ValueError('invalid key')
 
+    def decrypt(self, encrypt_msg):
+        return rsa_decrypt(encrypt_msg, self.__private_key)
+
     def verify_callback(
             self,
-            origin_authorization,
-            url,
-            body,
-            content_type='application/x-www-form-urlencoded'):
+            supplier_no, sign, req_id, timestamp):
         """回调验证
 
         Args:
-            origin_authorization: 回调时请求Header中的Authorization字段
-            url:                  回调请求的url
-            body:                 回调请求的body
-            content_type:         回调请求body的Content-Type
+            supplier_no:        回调请求中供应商NO
+            sign:              回调请求的签名
+            req_id:            回调请求的请求ID
+            timestamp:         回调请求的时间戳
 
         Returns:
-            返回true表示验证成功，返回false表示验证失败
+            返回ValueError异常表示验证失败
         """
-        token = self.token_of_request(url, body, content_type)
-        authorization = 'QBox {0}'.format(token)
-        return origin_authorization == authorization
+        if not supplier_no:
+            raise ValueError(f"签名参数supplierNo未提供。reqId: {req_id}")
+        if not sign:
+            raise ValueError(f"签名参数sign未提供。reqId: {req_id}")
+
+        if time.time() - timestamp > 600:
+            raise ValueError(f"签名已过期。reqId: {req_id}")
+
+        str_to_sign = f"supplierNo={supplier_no}&timestamp={timestamp}"
+
+        try:
+            rsa_verify(sign, str_to_sign, self.__public_key)
+        except InvalidSignature:
+            raise ValueError(f"签名校验错误。reqId: {req_id}")
+        except Exception as e:
+            raise ValueError(f"签名验证过程中出现问题: {e}")
