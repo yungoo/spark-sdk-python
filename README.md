@@ -21,6 +21,25 @@ $ pip install sparkproxy
 
 ## 使用方法
 
+### 检查接口是否已经配置好
+
+```python
+from sparkproxy import Auth
+from sparkproxy import SparkProxyClient
+
+supplier_no = 'test0001'
+with open("key.pem", 'rb') as pem_file:
+    private_key = pem_file.read().decode("utf-8")
+with open("spark.pub", 'rb') as pem_file:
+    rsa_public_key = pem_file.read().decode("utf-8")
+client = SparkProxyClient(Auth(supplier_no=supplier_no, private_key=private_key, public_key=rsa_public_key))
+
+# 获取订单&实例信息
+ret, info = client.check_available()
+print(ret)
+print(info)
+```
+
 ### 调用sparkproxy的开放接口
 
 ```python
