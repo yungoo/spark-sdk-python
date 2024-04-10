@@ -3,7 +3,8 @@ import time
 
 from cryptography.exceptions import InvalidSignature
 
-from sparkproxy.rsa import rsa_load_pem_private_key, rsa_sign, rsa_decrypt, rsa_verify, rsa_load_pem_public_key
+from sparkproxy.rsa import rsa_load_pem_private_key, rsa_sign, rsa_verify, rsa_load_pem_public_key, \
+    rsa_public_encrypt, rsa_private_decrypt
 
 
 class Auth(object):
@@ -49,8 +50,11 @@ class Auth(object):
         if not (access_key and secret_key):
             raise ValueError('invalid key')
 
-    def decrypt(self, encrypt_msg):
-        return rsa_decrypt(encrypt_msg, self.__private_key)
+    def encrypt_using_remote_public_key(self, msg):
+        return rsa_public_encrypt(msg, self.__public_key)
+
+    def decrypt_using_private_key(self, encrypt_msg):
+        return rsa_private_decrypt(encrypt_msg, self.__private_key)
 
     def verify_callback(
             self,

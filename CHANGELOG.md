@@ -1,4 +1,7 @@
 # Changelog
+## 0.3.0（2024-04-10）
+* 增加check_available接口
+
 ## 0.2.1（2024-04-09）
 * auth兼容python2.7
 * fix GetInstance返回的数据结构

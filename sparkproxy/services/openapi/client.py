@@ -4,6 +4,7 @@ import uuid
 
 from sparkproxy import config
 from sparkproxy import http
+from sparkproxy.rsa import to_string, to_hex
 
 
 class SparkProxyClient(object):
@@ -32,6 +33,30 @@ class SparkProxyClient(object):
             self.host = config.get_default("default_api_host")
         else:
             self.host = host
+
+    def check_available(self):
+        """测试接口是否正常
+
+        验签成功后，把16进制字符串转为二进制、通过自己的私钥解密、把解密字符串用服务器的公钥加密，并转为16进制字符串
+
+        Returns:
+            返回一个tuple对象，其格式为(<result>, <ResponseInfo>)
+            - result          成功返回字符串
+            - ResponseInfo    请求的Response信息
+        """
+        msg = "hello"
+        encrypted_msg = self.auth.encrypt_using_remote_public_key(msg)
+        ret, info = self.__post('CheckAvailable', encrypted_msg)
+        if ret is not None and ret["code"] == 200:
+            received_encrypted_msg = ret['data']
+            try:
+                received_decrypted_msg = self.auth.decrypt_using_private_key(received_encrypted_msg)
+            except ValueError as e:
+                raise ValueError("使用本地私钥解密失败")
+            received_msg = to_string(received_decrypted_msg)
+            return msg == received_msg, None
+
+        return False, info
 
     def get_product_stock(self, proxy_type, country_code=None, city_code=None):
         """获取商品库存
@@ -87,7 +112,7 @@ class SparkProxyClient(object):
             for ipInfo in ret['data']['ipInfo']:
                 password = ipInfo["password"]
                 if len(password) > 0:
-                    ipInfo["password"] = self.auth.decrypt(password)
+                    ipInfo["password"] = self.auth.decrypt_using_private_key(password)
         return ret, info
 
     def delete_proxy(self, req_order_no, instances):
@@ -123,7 +148,7 @@ class SparkProxyClient(object):
             for ipInfo in ret['data']['ipInfo']:
                 password = ipInfo["password"]
                 if len(password) > 0:
-                    ipInfo["password"] = self.auth.decrypt(password)
+                    ipInfo["password"] = self.auth.decrypt_using_private_key(password)
         return ret, info
 
     def get_instance(self, instance_id):
@@ -143,7 +168,7 @@ class SparkProxyClient(object):
         if ret is not None:
             password = ret['data']["password"]
             if len(password) > 0:
-                ret['data']["password"] = self.auth.decrypt(password)
+                ret['data']["password"] = self.auth.decrypt_using_private_key(password)
         return ret, info
 
     def __request_params(self, method, args):

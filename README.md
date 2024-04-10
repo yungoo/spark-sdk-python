@@ -104,7 +104,7 @@ def receiveSyncInstances():
         for ipInfo in ret['data']['ipInfo']:
             password = ipInfo["password"]
             if len(password) > 0:
-                ipInfo["password"] = auth.decrypt(password)
+                ipInfo["password"] = auth.decrypt_using_private_key(password)
 
     print(ret)
 

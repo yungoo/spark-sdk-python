@@ -13,6 +13,25 @@ def to_bytes(data, encoding='utf-8'):
     return data
 
 
+def to_string(data, encoding='utf-8'):
+    """
+    将数据转换为字符串。
+
+    Args:
+        data: 要转换的数据。
+        encoding: 字符串编码。
+
+    Returns:
+        str: 转换后的字符串。
+    """
+    if isinstance(data, bytes):
+        return data.decode(encoding)
+    elif isinstance(data, str):
+        return data
+    else:
+        return str(data)
+
+
 # 兼容Python 2和3的十六进制解码函数
 def from_hex(s):
     try:
@@ -46,7 +65,18 @@ def rsa_load_pem_public_key(pub_key):
     return public_key
 
 
-def rsa_decrypt(encrypted_msg_hex, private_key):
+def rsa_public_encrypt(msg, public_key):
+    decoded_msg = to_bytes(msg)
+
+    encrypted_msg = public_key.encrypt(
+        decoded_msg,
+        padding.PKCS1v15()
+    )
+
+    return to_hex(encrypted_msg)
+
+
+def rsa_private_decrypt(encrypted_msg_hex, private_key):
     encrypted_msg = from_hex(encrypted_msg_hex)
 
     decrypted_msg = private_key.decrypt(
