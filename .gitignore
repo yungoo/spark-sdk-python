@@ -2,3 +2,4 @@ dist/
 build/
 sparkproxy.egg-info/
 .idea
+.python-version

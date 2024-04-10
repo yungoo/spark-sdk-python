@@ -71,18 +71,18 @@ class Auth(object):
             返回ValueError异常表示验证失败
         """
         if not supplier_no:
-            raise ValueError(f"签名参数supplierNo未提供。reqId: {req_id}")
+            raise ValueError("签名参数supplierNo未提供。reqId: {}".format(req_id))
         if not sign:
-            raise ValueError(f"签名参数sign未提供。reqId: {req_id}")
+            raise ValueError("签名参数sign未提供。reqId: {}".format(req_id))
 
         if time.time() - timestamp > 600:
-            raise ValueError(f"签名已过期。reqId: {req_id}")
+            raise ValueError("签名已过期。reqId: {}".format(req_id))
 
-        str_to_sign = f"supplierNo={supplier_no}&timestamp={timestamp}"
+        str_to_sign = "supplierNo={}&timestamp={}".format(supplier_no, timestamp)
 
         try:
             rsa_verify(sign, str_to_sign, self.__public_key)
         except InvalidSignature:
-            raise ValueError(f"签名校验错误。reqId: {req_id}")
+            raise ValueError("签名校验错误。reqId: {}".format(req_id))
         except Exception as e:
-            raise ValueError(f"签名验证过程中出现问题: {e}")
+            raise ValueError("签名验证过程中出现问题: {}".format(e))

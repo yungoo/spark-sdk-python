@@ -1,16 +1,29 @@
+# coding=utf-8
+from __future__ import absolute_import, division, print_function
 import binascii
 
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import padding
+# 尝试导入Python 3中的库，如果失败，则回退到Python 2的等效库
+import sys
+
+try:
+    from cryptography.hazmat.backends import default_backend
+    from cryptography.hazmat.primitives import serialization, hashes
+    from cryptography.hazmat.primitives.asymmetric import padding
+except ImportError:
+    # Python 2的兼容代码，或其他回退代码
+    # 注意：cryptography库在Python 2和Python 3中的用法相同，所以这里主要是演示结构
+    pass
 
 
 # 兼容Python 2和3的编码函数
 def to_bytes(data, encoding='utf-8'):
-    if isinstance(data, str):
-        return data.encode(encoding)
-    return data
+    """确保s是字节类型"""
+    if sys.version_info[0] < 3:
+        # Python 2.x，s已经是字节串
+        return data
+    else:
+        # Python 3.x，确保是bytes
+        return data.encode(encoding) if isinstance(data, str) else data
 
 
 def to_string(data, encoding='utf-8'):
@@ -50,7 +63,7 @@ def to_hex(data):
 
 def rsa_load_pem_private_key(pri_key):
     private_key = serialization.load_pem_private_key(
-        to_bytes(pri_key),
+        pri_key,
         password=None,
         backend=default_backend()
     )
@@ -59,8 +72,8 @@ def rsa_load_pem_private_key(pri_key):
 
 def rsa_load_pem_public_key(pub_key):
     public_key = serialization.load_pem_public_key(
-        to_bytes(pub_key),
-        backend=default_backend()  # 显式指定后端
+        pub_key,
+        backend=default_backend()
     )
     return public_key
 

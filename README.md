@@ -29,9 +29,9 @@ from sparkproxy import SparkProxyClient
 
 supplier_no = 'test0001'
 with open("key.pem", 'rb') as pem_file:
-    private_key = pem_file.read().decode("utf-8")
+    private_key = pem_file.read()
 with open("spark.pub", 'rb') as pem_file:
-    rsa_public_key = pem_file.read().decode("utf-8")
+    rsa_public_key = pem_file.read()
 client = SparkProxyClient(Auth(supplier_no=supplier_no, private_key=private_key, public_key=rsa_public_key))
 
 # 获取订单&实例信息
@@ -51,7 +51,7 @@ supplier_no = 'test0001'
 
 # 使用私钥对请求签名（认证）, 生成方式参考 [examples示例](https://github.com/yungoo/spark-sdk-python/tree/master/examples/genrsa.py)。
 with open("key.pem", 'rb') as pem_file:
-    private_key = pem_file.read().decode("utf-8")
+    private_key = pem_file.read()
 client = SparkProxyClient(Auth(supplier_no=supplier_no, private_key=private_key))
 
 ret, info = client.get_product_stock(proxy_type=103)
@@ -80,7 +80,7 @@ wvarJGl6cincWuZvIwIDAQAB
 '''
 
 with open("key.pem", 'rb') as pem_file:
-    private_key = pem_file.read().decode("utf-8")
+    private_key = pem_file.read()
 
 supplier_no = 'test0001'
 auth = Auth(supplier_no=supplier_no, private_key=private_key, public_key=rsa_public_key)

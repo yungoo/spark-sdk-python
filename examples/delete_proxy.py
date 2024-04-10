@@ -6,7 +6,7 @@ from sparkproxy import SparkProxyClient
 
 supplier_no = 'test0001'
 with open("key.pem", 'rb') as pem_file:
-    private_key = pem_file.read().decode("utf-8")
+    private_key = pem_file.read()
 
 client = SparkProxyClient(Auth(supplier_no=supplier_no, private_key=private_key))
 

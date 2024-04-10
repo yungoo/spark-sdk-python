@@ -1,4 +1,7 @@
 # Changelog
+## 0.3.1（2024-04-10）
+* 兼容python 2.7
+
 ## 0.3.0（2024-04-10）
 * 增加check_available接口
 
