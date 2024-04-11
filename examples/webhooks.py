@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 
 from flask import Flask, request
@@ -37,16 +38,26 @@ def receiveCheckAvailable():
     # 验签
     ret, code = verify_request(request)
     if ret is not None:
-        return ret, code
+        return {"code": 400, "msg": "签名校验失败"}
+
+    ret = request.json
+    if 'data' not in ret:
+        return {"code": 400, "msg": "缺少data参数"}
 
     # 取出参数字符串，把16进制字符串转为二进制
-    cyper_text = request.json["data"]
+    cyper_text = ret["data"]
 
-    # 通过自己的私钥解密
-    plain_text = auth.decrypt_using_private_key(cyper_text)
+    try:
+        # 通过自己的私钥解密
+        plain_text = auth.decrypt_using_private_key(cyper_text)
+    except:
+        return {"code": 400, "msg": "解密失败"}
 
-    # 把解密字符串用对方的公钥加密，并转为16进制字符串
-    new_cyper_text = auth.encrypt_using_remote_public_key(plain_text)
+    try:
+        # 把解密字符串用对方的公钥加密，并转为16进制字符串
+        new_cyper_text = auth.encrypt_using_remote_public_key(plain_text)
+    except:
+        return {"code": 400, "msg": "加密失败"}
 
     return {
         "code": 200,
@@ -59,20 +70,25 @@ def receiveCheckAvailable():
 def receiveSyncProducts():
     ret, code = verify_request(request)
     if ret is not None:
-        return ret, code
+        return {"code": 400, "msg": "签名校验失败"}
 
-    return "", 200
+    ret = request.json
+    print(ret)
+
+    return {"code": 200, "msg": "ok"}
 
 
 @app.route("/instance/sync", methods=["POST"])
 def receiveSyncInstances():
     ret, code = verify_request(request)
     if ret is not None:
-        return ret, code
+        return {"code": 400, "msg": "签名校验失败"}
 
     ret = request.json
-    if ret is not None:
-        for ipInfo in ret['data']['ipInfo']:
+    print(ret)
+
+    if 'ipInfo' in ret and ret['ipInfo'] is not None:
+        for ipInfo in ret['ipInfo']:
             password = ipInfo["password"]
             if len(password) > 0:
                 ipInfo["password"] = auth.decrypt_using_private_key(password)

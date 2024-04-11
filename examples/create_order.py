@@ -14,10 +14,10 @@ if ret is not None:
     print(ret)
     print(info)
 
-    if len(ret['data']) > 0 and len(ret['data'][0]["skus"]) > 0:
+    if ret['data'] is not None and len(ret['data']) > 0 and len(ret['data'][0]["skus"]) > 0:
         product = ret['data'][0]
         sku = product["skus"][0]
-        ret, info = client.create_proxy(req_order_no="test001", sku=sku["sku"], amount=1, duration=sku["duration"],
+        ret, info = client.create_proxy(req_order_no="test003", sku=sku["sku"], amount=1, duration=sku["duration"],
                                         unit=sku["unit"],
                                         country_code=product["countryCode"], city_code=product["cityCode"])
         print(ret)

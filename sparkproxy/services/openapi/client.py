@@ -47,7 +47,7 @@ class SparkProxyClient(object):
         msg = "hello"
         encrypted_msg = self.auth.encrypt_using_remote_public_key(msg)
         ret, info = self.__post('CheckAvailable', encrypted_msg)
-        if ret is not None and ret["code"] == 200:
+        if ret is not None and 'code' in ret and ret['code'] == 200:
             received_encrypted_msg = ret['data']
             try:
                 received_decrypted_msg = self.auth.decrypt_using_private_key(received_encrypted_msg)
@@ -108,7 +108,7 @@ class SparkProxyClient(object):
             - ResponseInfo    请求的Response信息
         """
         ret, info = self.__post('RenewProxy', {"reqOrderNo": req_order_no, "instances": instances})
-        if ret is not None and ret['code'] == 200:
+        if ret is not None and 'code' in ret and ret['code'] == 200:
             for ipInfo in ret['data']['ipInfo']:
                 password = ipInfo["password"]
                 if len(password) > 0:
@@ -144,11 +144,13 @@ class SparkProxyClient(object):
             - ResponseInfo    请求的Response信息
         """
         ret, info = self.__post('GetOrder', {"reqOrderNo": req_order_no})
-        if ret is not None and ret['code'] == 200:
-            for ipInfo in ret['data']['ipInfo']:
-                password = ipInfo["password"]
-                if len(password) > 0:
-                    ipInfo["password"] = self.auth.decrypt_using_private_key(password)
+        if ret is not None and 'code' in ret and ret['code'] == 200 and 'data' in ret:
+            data = ret['data']
+            if 'ipInfo' in data:
+                for ipInfo in data['ipInfo']:
+                    password = ipInfo["password"] if "password" in ipInfo else ''
+                    if len(password) > 0:
+                        ipInfo["password"] = self.auth.decrypt_using_private_key(password)
         return ret, info
 
     def get_instance(self, instance_id):
@@ -165,10 +167,11 @@ class SparkProxyClient(object):
             - ResponseInfo    请求的Response信息
         """
         ret, info = self.__post('GetInstance', {"instanceId": instance_id})
-        if ret is not None and ret['code'] == 200:
-            password = ret['data']["password"]
+        if ret is not None and 'code' in ret and ret['code'] == 200 and 'data' in ret:
+            data = ret['data']
+            password = data["password"] if 'password' in data else ''
             if len(password) > 0:
-                ret['data']["password"] = self.auth.decrypt_using_private_key(password)
+                data["password"] = self.auth.decrypt_using_private_key(password)
         return ret, info
 
     def __request_params(self, method, args):

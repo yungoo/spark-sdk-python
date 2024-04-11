@@ -140,7 +140,7 @@ def receiveSyncInstances():
         return ret, code
 
     ret = request.json
-    if ret is not None:
+    if ret is not None and ret:
         for ipInfo in ret['data']['ipInfo']:
             password = ipInfo["password"]
             if len(password) > 0:
