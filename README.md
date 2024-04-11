@@ -102,6 +102,27 @@ def verify_request(req):
 
 app = Flask(__name__)
 
+@app.route("/checkAvailable", methods=["POST"])
+def receiveCheckAvailable():
+    # 验签
+    ret, code = verify_request(request)
+    if ret is not None:
+        return ret, code
+
+    # 取出参数字符串，把16进制字符串转为二进制
+    cyper_text = request.json["data"]
+
+    # 通过自己的私钥解密
+    plain_text = auth.decrypt_using_private_key(cyper_text)
+
+    # 把解密字符串用对方的公钥加密，并转为16进制字符串
+    new_cyper_text = auth.encrypt_using_remote_public_key(plain_text)
+
+    return {
+        "code": 200,
+        "msg": "ok",
+        "data": new_cyper_text
+    }
 
 @app.route("/product/sync", methods=["POST"])
 def receiveSyncProducts():
