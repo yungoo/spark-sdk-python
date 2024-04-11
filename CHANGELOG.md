@@ -1,4 +1,7 @@
 # Changelog
+## 0.4.0（2024-04-10）
+* samples/webhook增加checkAvailable接口，支持测试接口互通
+
 ## 0.3.1（2024-04-10）
 * 兼容python 2.7
 
