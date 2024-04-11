@@ -9,7 +9,7 @@ For detailed document, please see:
 
 # flake8: noqa
 
-__version__ = '0.4.0'
+__version__ = '0.4.1'
 
 from .auth import Auth
 

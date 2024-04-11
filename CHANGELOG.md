@@ -1,4 +1,7 @@
 # Changelog
+## 0.4.1（2024-04-11）
+* fix 密码解密处理接口错误
+
 ## 0.4.0（2024-04-10）
 * samples/webhook增加checkAvailable接口，支持测试接口互通
 

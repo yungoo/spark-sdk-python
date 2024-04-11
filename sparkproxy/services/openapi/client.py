@@ -108,7 +108,7 @@ class SparkProxyClient(object):
             - ResponseInfo    请求的Response信息
         """
         ret, info = self.__post('RenewProxy', {"reqOrderNo": req_order_no, "instances": instances})
-        if ret is not None:
+        if ret is not None and ret['code'] == 200:
             for ipInfo in ret['data']['ipInfo']:
                 password = ipInfo["password"]
                 if len(password) > 0:
@@ -144,7 +144,7 @@ class SparkProxyClient(object):
             - ResponseInfo    请求的Response信息
         """
         ret, info = self.__post('GetOrder', {"reqOrderNo": req_order_no})
-        if ret is not None:
+        if ret is not None and ret['code'] == 200:
             for ipInfo in ret['data']['ipInfo']:
                 password = ipInfo["password"]
                 if len(password) > 0:
@@ -165,7 +165,7 @@ class SparkProxyClient(object):
             - ResponseInfo    请求的Response信息
         """
         ret, info = self.__post('GetInstance', {"instanceId": instance_id})
-        if ret is not None:
+        if ret is not None and ret['code'] == 200:
             password = ret['data']["password"]
             if len(password) > 0:
                 ret['data']["password"] = self.auth.decrypt_using_private_key(password)
