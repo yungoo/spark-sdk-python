@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 API_HOST = 'http://8.130.48.76:16801'  # 数据处理操作Host
+# API_HOST = 'http://127.0.0.1:8080'  # 数据处理操作Host
 
 _config = {
     'default_api_host': API_HOST,

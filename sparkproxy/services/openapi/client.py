@@ -58,7 +58,7 @@ class SparkProxyClient(object):
 
         return False, info
 
-    def get_product_stock(self, proxy_type, country_code=None, city_code=None):
+    def get_product_stock(self, proxy_type, country_code=None, area_code=None, city_code=None):
         """获取商品库存
 
         列出当前所有在售的商品及其库存信息。
@@ -69,9 +69,23 @@ class SparkProxyClient(object):
             - ResponseInfo    请求的Response信息
         """
         return self.__post('GetProductStock',
-                           {"proxyType": proxy_type, "countryCode": country_code, "cityCode": city_code})
+                           {"proxyType": proxy_type, "countryCode": country_code, "areaCode": area_code, "cityCode": city_code})
 
-    def create_proxy(self, req_order_no, sku, amount, duration, unit, country_code, city_code):
+    def get_product_stock2(self, proxy_type, country_code=None, area_code=None, city_code=None):
+        """获取商品库存
+
+        列出当前所有在售的商品及其库存信息。
+
+        Returns:
+            返回一个tuple对象，其格式为(<result>, <ResponseInfo>)
+            - result          成功返回服务组列表[<product1>, <product1>, ...]，失败返回{"error": "<errMsg string>"}
+            - ResponseInfo    请求的Response信息
+        """
+        return self.__post('GetProductStock',
+                           {"proxyType": proxy_type, "countryCode": country_code, "areaCode": area_code, "cityCode": city_code},
+                           version="2024-04-16")
+
+    def create_proxy(self, req_order_no, sku, amount, duration, unit, country_code, area_code, city_code):
         """创建代理实例
 
         创建新代理实例，返回订单信息
@@ -83,6 +97,7 @@ class SparkProxyClient(object):
             - duration: 必要 时长 0无限制
             - unit: 单位 1 天;2 周（7天）;3 月(自然月; 4年(自然年365，366）
             - country_code: 必要,国家代码 3位 iso标准
+            - area_code: 必要,州代码 3位 iso标准
             - city_code: 必要,城市代码 向我方提取
 
         Returns:
@@ -90,9 +105,9 @@ class SparkProxyClient(object):
             - result          成功返回空dict{}，失败返回{"error": "<errMsg string>"}
             - ResponseInfo    请求的Response信息
         """
-        return self.__post('CreateProxy', {"reqOrderNo": req_order_no, "sku": sku, "amount": amount,
+        return self.__post('CreateProxy', {"reqOrderNo": req_order_no, "productId": sku, "amount": amount,
                                            "duration": duration, "unit": unit, "countryCode": country_code,
-                                           "cityCode": city_code})
+                                           "areaCode": area_code, "cityCode": city_code})
 
     def renew_proxy(self, req_order_no, instances):
         """续费代理实例
@@ -174,10 +189,10 @@ class SparkProxyClient(object):
                 data["password"] = self.auth.decrypt_using_private_key(password)
         return ret, info
 
-    def __request_params(self, method, args):
+    def __request_params(self, method, version, args):
         base_params = {
             "method": method,
-            "version": "2024-04-08",
+            "version": version if version is not None else "2024-04-08",
             "reqId": str(uuid.uuid4()),
             "timestamp": int(time.time()),
             "supplierNo": self.auth.get_supplier_no(),
@@ -187,7 +202,7 @@ class SparkProxyClient(object):
         base_params["sign"] = self.auth.token_of_request(base_params)
         return base_params
 
-    def __post(self, method, data=None):
+    def __post(self, method, data=None, version=None):
         url = '{0}/v1/open/api'.format(self.host)
-        req = self.__request_params(method, data)
+        req = self.__request_params(method, version, data)
         return http._post(url, req)
