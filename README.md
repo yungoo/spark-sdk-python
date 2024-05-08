@@ -17,7 +17,7 @@ $ pip install sparkproxy
 
 | sparkproxy SDK版本 |              Python 版本               |
 |:----------------:| :------------------------------------: |
-|       0.x        | 2.7, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9 |
+|      1.0.0       | 2.7, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9 |
 
 ## 使用方法
 
@@ -26,13 +26,14 @@ $ pip install sparkproxy
 ```python
 from sparkproxy import Auth
 from sparkproxy import SparkProxyClient
+from sparkproxy.config import SANDBOX_API_HOST
 
 supplier_no = 'test0001'
 with open("key.pem", 'rb') as pem_file:
     private_key = pem_file.read()
 with open("spark.pub", 'rb') as pem_file:
     rsa_public_key = pem_file.read()
-client = SparkProxyClient(Auth(supplier_no=supplier_no, private_key=private_key, public_key=rsa_public_key))
+client = SparkProxyClient(Auth(supplier_no=supplier_no, private_key=private_key, public_key=rsa_public_key), host=SANDBOX_API_HOST)
 
 # 获取订单&实例信息
 ret, info = client.check_available()
@@ -45,6 +46,7 @@ print(info)
 ```python
 from sparkproxy import Auth
 from sparkproxy import SparkProxyClient
+from sparkproxy.config import SANDBOX_API_HOST
 
 # 双方协商的商户号
 supplier_no = 'test0001'
@@ -52,7 +54,7 @@ supplier_no = 'test0001'
 # 使用私钥对请求签名（认证）, 生成方式参考 [examples示例](https://github.com/yungoo/spark-sdk-python/tree/master/examples/genrsa.py)。
 with open("key.pem", 'rb') as pem_file:
     private_key = pem_file.read()
-client = SparkProxyClient(Auth(supplier_no=supplier_no, private_key=private_key))
+client = SparkProxyClient(Auth(supplier_no=supplier_no, private_key=private_key), host=SANDBOX_API_HOST)
 
 ret, info = client.get_product_stock(proxy_type=103)
 if ret is not None:

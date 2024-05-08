@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
-API_HOST = 'http://8.130.48.76:16801'  # 数据处理操作Host
-# API_HOST = 'http://127.0.0.1:8080'  # 数据处理操作Host
+SANDBOX_API_HOST = 'http://8.130.48.76:16801'
+PRODUCTION_API_HOST = 'https://oapi.sparkproxy.com'
 
 _config = {
-    'default_api_host': API_HOST,
+    'default_api_host': PRODUCTION_API_HOST,
     'connection_timeout': 30,  # 链接超时为时间为30s
     'connection_retries': 3,  # 链接重试次数为3次
     'connection_pool': 10  # 链接池个数为10
