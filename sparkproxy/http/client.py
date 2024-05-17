@@ -28,7 +28,7 @@ class HTTPClient:
             request (requests.Request):
                 requests.Request 对象
 
-            middlewares (list[qiniu.http.middleware.Middleware] or (list[qiniu.http.middleware.Middleware]) -> list[qiniu.http.middleware.Middleware]):
+            middlewares (list[sparkproxy.http.middleware.Middleware] or (list[sparkproxy.http.middleware.Middleware]) -> list[sparkproxy.http.middleware.Middleware]):
                 仅对本次请求生效的中间件。
 
                 如果传入的是列表，那么会作为追加的中间件拼接到 Client 中间件的后面。

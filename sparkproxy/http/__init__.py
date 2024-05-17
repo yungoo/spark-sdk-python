@@ -10,7 +10,7 @@ from .client import HTTPClient
 from .middleware import UserAgentMiddleware
 from .response import ResponseInfo
 
-qn_http_client = HTTPClient(
+sp_http_client = HTTPClient(
     middlewares=[
         UserAgentMiddleware(__version__)
     ]
@@ -28,7 +28,7 @@ def _before_send(func):
     return wrapper
 
 
-qn_http_client.send_request = _before_send(qn_http_client.send_request)
+sp_http_client.send_request = _before_send(sp_http_client.send_request)
 
 _sys_info = '{0}; {1}'.format(platform.system(), platform.machine())
 _python_ver = platform.python_version()
@@ -55,7 +55,7 @@ def __return_wrapper(resp):
 def _init():
     global _session
     if _session is None:
-        _session = qn_http_client.session
+        _session = sp_http_client.session
 
     adapter = HTTPAdapter(
         pool_connections=config.get_default('connection_pool'),

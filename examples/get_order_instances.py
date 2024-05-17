@@ -12,7 +12,7 @@ with open("key.pem", 'rb') as pem_file:
 client = SparkProxyClient(Auth(supplier_no=supplier_no, private_key=private_key), host=SANDBOX_API_HOST)
 
 # 获取订单&实例信息
-ret, info = client.get_order(req_order_no="test001")
+ret, info = client.get_order(req_order_no="911522021909124_US_1_1715220221.59")
 print(ret)
 print(info)
 

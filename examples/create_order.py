@@ -17,7 +17,7 @@ if ret is not None:
 
     if ret['data'] is not None and len(ret['data']) > 0:
         product = ret['data'][1]
-        ret, info = client.create_proxy(req_order_no="test008", sku=product["productId"], amount=1, duration=product["duration"],
+        ret, info = client.create_proxy(req_order_no="test_240517_01", sku=product["productId"], amount=1, duration=product["duration"]*2,
                                         unit=product["unit"],
                                         country_code=product["countryCode"], area_code=product["areaCode"], city_code=product["cityCode"])
         print(ret)
@@ -27,4 +27,4 @@ if ret is not None:
             print(ret)
             print(info)
 
-assert len(ret) is not None
+assert ret is not None

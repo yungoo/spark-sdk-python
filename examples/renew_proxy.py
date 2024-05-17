@@ -13,7 +13,7 @@ client = SparkProxyClient(Auth(supplier_no=supplier_no, private_key=private_key)
 
 # 已生效、未过期的实例，可以续费
 ret, info = client.renew_proxy(req_order_no="test002", instances=[
-    {"instanceId": "b32cecb6b72240eb852d78f41c82dffb", "duration": 30, "unit": 1}])
+    {"instanceId": "de15c69d70fd48bc8f1bd28b13aaee57", "duration": 30, "unit": 1}])
 
 print(ret)
 print(info)

@@ -6,10 +6,10 @@ def compose_middleware(middlewares, handle):
     """
     Args:
         middlewares (list[Middleware]): Middlewares
-        handle ((requests.Request) -> qiniu.http.response.ResponseInfo): The send request handle
+        handle ((requests.Request) -> sparkproxy.http.response.ResponseInfo): The send request handle
 
     Returns:
-        (requests.Request) -> qiniu.http.response.ResponseInfo: Composed handle
+        (requests.Request) -> sparkproxy.http.response.ResponseInfo: Composed handle
 
     """
     middlewares.reverse()
@@ -27,7 +27,7 @@ class Middleware:
         """
         Args:
             request (requests.Request):
-            nxt ((requests.Request) -> qiniu.http.response.ResponseInfo):
+            nxt ((requests.Request) -> sparkproxy.http.response.ResponseInfo):
 
         Returns:
             requests.Response:
