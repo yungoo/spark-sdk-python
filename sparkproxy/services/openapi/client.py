@@ -189,7 +189,7 @@ class SparkProxyClient(object):
                 data["password"] = self.auth.decrypt_using_private_key(password)
         return ret, info
 
-    def get_flow_balance(self, username):
+    def get_proxy_user(self, username):
         """获取订单信息
 
         获取订单信息
@@ -202,27 +202,27 @@ class SparkProxyClient(object):
             - result          成功返回空dict{}，失败返回{"error": "<errMsg string>"}
             - ResponseInfo    请求的Response信息
         """
-        ret, info = self.__post('GetFlowBalance', {"username": username})
+        ret, info = self.__post('GetProxyUser', {"username": username})
         return ret, info
 
-    def recharge_flow(self, username, req_order_no, flow, days):
+    def recharge_traffic(self, username, req_order_no, traffic, validity_days):
         """流量充值
 
         Args:
             - username:  流量账号ID
             - req_order_no: 客方订单号
-            - flow: 流量MB
-            - days：有效期
+            - traffic: 流量MB
+            - validity_days：有效期
 
         Returns:
             返回一个tuple对象，其格式为(<result>, <ResponseInfo>)
             - result          成功返回空dict{}，失败返回{"error": "<errMsg string>"}
             - ResponseInfo    请求的Response信息
         """
-        ret, info = self.__post('RechargeFlow', {"username": username, "reqOrderNo": req_order_no, "flow": flow, "days": days})
+        ret, info = self.__post('RechargeTraffic', {"username": username, "reqOrderNo": req_order_no, "traffic": traffic, "validityDays": validity_days})
         return ret, info
 
-    def get_flow_endpoints(self, country_code):
+    def get_proxy_endpoints(self, country_code):
         """流量充值
 
         Args:
@@ -233,7 +233,7 @@ class SparkProxyClient(object):
             - result          成功返回空dict{}，失败返回{"error": "<errMsg string>"}
             - ResponseInfo    请求的Response信息
         """
-        ret, info = self.__post('GetFlowEndpoints', {"countryCode": country_code})
+        ret, info = self.__post('GetProxyEndpoints', {"countryCode": country_code})
         return ret, info
 
     def __request_params(self, method, version, args):

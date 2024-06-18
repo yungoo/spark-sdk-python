@@ -13,6 +13,6 @@ with open("spark.pub", 'rb') as pem_file:
 client = SparkProxyClient(Auth(supplier_no=supplier_no, private_key=private_key, public_key=rsa_public_key), host="http://127.0.0.1:8081")
 
 # 获取订单&实例信息
-ret, info = client.get_flow_balance("user")
+ret, info = client.get_proxy_endpoints("USA")
 print(ret)
 print(info)
