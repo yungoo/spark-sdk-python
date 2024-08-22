@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-import time
-
 from cryptography.exceptions import InvalidSignature
 
-from sparkproxy.rsa import rsa_load_pem_private_key, rsa_sign, rsa_verify, rsa_load_pem_public_key, \
-    rsa_public_encrypt, rsa_private_decrypt
+from sparkproxy.aes import encrypt_data, decrypt_data
+from sparkproxy.rsa import rsa_load_pem_private_key, rsa_load_pem_public_key, rsa_sign, rsa_verify, rsa_public_encrypt, \
+    rsa_private_decrypt
 
 
 class Auth(object):
@@ -16,15 +15,22 @@ class Auth(object):
         __supplier_no: 供应商编号，双方协商获得
         __private_key: RSA私匙，公钥交给SparkProxy，调用接口时使用私钥签名，sparkproxy使用公钥验签
         __public_key: RSA公钥，SparkProxy提供的公钥
+        __secret_key: 对称加密密钥
     """
 
-    def __init__(self, supplier_no, private_key, public_key = None):
+    def __init__(self, supplier_no, private_key=None, public_key=None, secret_key=None):
         """初始化Auth类"""
-        self.__checkKey(supplier_no, private_key)
         self.__supplier_no = supplier_no
-        self.__private_key = rsa_load_pem_private_key(private_key)
-        if public_key is not None:
-            self.__public_key = rsa_load_pem_public_key(public_key)
+
+        if private_key is not None:
+            self.__checkKey(supplier_no, private_key)
+            self.__private_key = rsa_load_pem_private_key(private_key)
+            if public_key is not None:
+                self.__public_key = rsa_load_pem_public_key(public_key)
+        elif secret_key is not None:
+            self.__secret_key = secret_key
+        else:
+            assert "private_key & public_key, or secret_key must specified one"
 
     def get_supplier_no(self):
         return self.__supplier_no
@@ -44,11 +50,6 @@ class Auth(object):
 
         # 使用私钥对哈希值进行签名
         return rsa_sign(message, self.__private_key)
-
-    @staticmethod
-    def __checkKey(access_key, secret_key):
-        if not (access_key and secret_key):
-            raise ValueError('invalid key')
 
     def encrypt_using_remote_public_key(self, msg):
         return rsa_public_encrypt(msg, self.__public_key)
@@ -86,3 +87,14 @@ class Auth(object):
             raise ValueError("签名校验错误。reqId: {}".format(req_id))
         except Exception as e:
             raise ValueError("签名验证过程中出现问题: {}".format(e))
+
+    @staticmethod
+    def __checkKey(access_key, secret_key):
+        if not (access_key and secret_key):
+            raise ValueError('invalid key')
+
+    def encrypt_request(self, req):
+        return encrypt_data(req, self.__secret_key)
+
+    def decrypt_response(self, data):
+        return decrypt_data(data, self.__secret_key)

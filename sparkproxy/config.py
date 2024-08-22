@@ -2,6 +2,7 @@
 
 SANDBOX_API_HOST = 'http://8.130.48.76:16801'
 PRODUCTION_API_HOST = 'https://oapi.sparkproxy.com'
+DEV_API_HOST = "http://127.0.0.1:8081"
 
 _config = {
     'default_api_host': PRODUCTION_API_HOST,

@@ -4,7 +4,6 @@ import uuid
 
 from sparkproxy import config
 from sparkproxy import http
-from sparkproxy.rsa import to_string, to_hex
 
 
 class SparkProxyClient(object):
@@ -27,36 +26,42 @@ class SparkProxyClient(object):
         get_instance(stack)
     """
 
-    def __init__(self, auth, host=None):
+    def __init__(self, auth, api_version=2, host=None):
         self.auth = auth
+        self.api_version = api_version
         if host is None:
             self.host = config.get_default("default_api_host")
         else:
             self.host = host
 
-    def check_available(self):
-        """测试接口是否正常
+    def __request_params(self, method, version, args):
+        if self.api_version == 1:
+            base_params = {
+                "method": method,
+                "version": version if version is not None else "2024-04-08",
+                "reqId": str(uuid.uuid4()),
+                "timestamp": int(time.time()),
+                "supplierNo": self.auth.get_supplier_no(),
+                "sign": "",
+                "params": args
+            }
+            base_params["sign"] = self.auth.token_of_request(base_params)
 
-        验签成功后，把16进制字符串转为二进制、通过自己的私钥解密、把解密字符串用服务器的公钥加密，并转为16进制字符串
+            return base_params
+        else:
+            base_params = {"method": method, "version": version if version is not None else "2024-04-08",
+                           "reqId": str(uuid.uuid4()), "timestamp": int(time.time()),
+                           "supplierNo": self.auth.get_supplier_no(),
+                           "params": self.auth.encrypt_request(args)}
+            return base_params
 
-        Returns:
-            返回一个tuple对象，其格式为(<result>, <ResponseInfo>)
-            - result          成功返回字符串
-            - ResponseInfo    请求的Response信息
-        """
-        msg = "hello"
-        encrypted_msg = self.auth.encrypt_using_remote_public_key(msg)
-        ret, info = self.__post('CheckAvailable', encrypted_msg)
-        if ret is not None and 'code' in ret and ret['code'] == 200:
-            received_encrypted_msg = ret['data']
-            try:
-                received_decrypted_msg = self.auth.decrypt_using_private_key(received_encrypted_msg)
-            except ValueError as e:
-                raise ValueError("使用本地私钥解密失败")
-            received_msg = to_string(received_decrypted_msg)
-            return msg == received_msg, None
-
-        return False, info
+    def __post(self, method, data=None, version=None):
+        url = '{0}/v{1}/open/api'.format(self.host, self.api_version)
+        req = self.__request_params(method, version, data)
+        ret, info = http._post(url, req)
+        if self.api_version > 1 and ret is not None and 'data' in ret:
+            ret['data'] = self.auth.decrypt_response(ret['data'])
+        return ret, info
 
     def get_product_stock(self, proxy_type, country_code=None, area_code=None, city_code=None):
         """获取商品库存
@@ -71,21 +76,7 @@ class SparkProxyClient(object):
         return self.__post('GetProductStock',
                            {"proxyType": proxy_type, "countryCode": country_code, "areaCode": area_code, "cityCode": city_code})
 
-    def get_product_stock2(self, proxy_type, country_code=None, area_code=None, city_code=None):
-        """获取商品库存
-
-        列出当前所有在售的商品及其库存信息。
-
-        Returns:
-            返回一个tuple对象，其格式为(<result>, <ResponseInfo>)
-            - result          成功返回服务组列表[<product1>, <product1>, ...]，失败返回{"error": "<errMsg string>"}
-            - ResponseInfo    请求的Response信息
-        """
-        return self.__post('GetProductStock',
-                           {"proxyType": proxy_type, "countryCode": country_code, "areaCode": area_code, "cityCode": city_code},
-                           version="2024-04-16")
-
-    def create_proxy(self, req_order_no, sku, amount, duration, unit, country_code, area_code, city_code):
+    def create_proxy(self, req_order_no, sku, amount, duration, unit, country_code, area_code, city_code, rules=[]):
         """创建代理实例
 
         创建新代理实例，返回订单信息
@@ -99,7 +90,10 @@ class SparkProxyClient(object):
             - country_code: 必要,国家代码 3位 iso标准
             - area_code: 必要,州代码 3位 iso标准
             - city_code: 必要,城市代码 向我方提取
-
+            - rules: IP段规则数组
+                - exclude bool False-not in  True-in
+                - cidr string ip段，如 154.111.102.0/24
+                - count int 抽取该规则段数量
         Returns:
             返回一个tuple对象，其格式为(<result>, <ResponseInfo>)
             - result          成功返回空dict{}，失败返回{"error": "<errMsg string>"}
@@ -107,7 +101,7 @@ class SparkProxyClient(object):
         """
         return self.__post('CreateProxy', {"reqOrderNo": req_order_no, "productId": sku, "amount": amount,
                                            "duration": duration, "unit": unit, "countryCode": country_code,
-                                           "areaCode": area_code, "cityCode": city_code})
+                                           "areaCode": area_code, "cityCode": city_code, "cidrBlocks": rules})
 
     def renew_proxy(self, req_order_no, instances):
         """续费代理实例
@@ -123,11 +117,6 @@ class SparkProxyClient(object):
             - ResponseInfo    请求的Response信息
         """
         ret, info = self.__post('RenewProxy', {"reqOrderNo": req_order_no, "instances": instances})
-        if ret is not None and 'code' in ret and ret['code'] == 200:
-            for ipInfo in ret['data']['ipInfo']:
-                password = ipInfo["password"]
-                if len(password) > 0:
-                    ipInfo["password"] = self.auth.decrypt_using_private_key(password)
         return ret, info
 
     def delete_proxy(self, req_order_no, instances):
@@ -182,27 +171,45 @@ class SparkProxyClient(object):
             - ResponseInfo    请求的Response信息
         """
         ret, info = self.__post('GetInstance', {"instanceId": instance_id})
-        if ret is not None and 'code' in ret and ret['code'] == 200 and 'data' in ret:
-            data = ret['data']
-            password = data["password"] if 'password' in data else ''
-            if len(password) > 0:
-                data["password"] = self.auth.decrypt_using_private_key(password)
+        if self.api_version == 1:
+            if ret is not None and 'code' in ret and ret['code'] == 200 and 'data' in ret:
+                data = ret['data']
+                password = data["password"] if 'password' in data else ''
+                if len(password) > 0:
+                    data["password"] = self.auth.decrypt_using_private_key(password)
         return ret, info
 
-    def get_proxy_user(self, username):
-        """获取订单信息
+    def init_proxy_user(self, user_id, name):
+        """获取代理用户
 
-        获取订单信息
+        获取代理用户
 
         Args:
-            - username:  流量账号ID
+            - user_id:  代理账号ID（唯一用户ID）
+            - name:  账号名称
 
         Returns:
             返回一个tuple对象，其格式为(<result>, <ResponseInfo>)
             - result          成功返回空dict{}，失败返回{"error": "<errMsg string>"}
             - ResponseInfo    请求的Response信息
         """
-        ret, info = self.__post('GetProxyUser', {"username": username})
+        ret, info = self.__post('InitProxyUser', {"reqUserId": user_id, "name": name})
+        return ret, info
+
+    def get_proxy_user(self, username):
+        """获取代理用户
+
+        获取代理用户
+
+        Args:
+            - username:  代理账号ID（管理用户）
+
+        Returns:
+            返回一个tuple对象，其格式为(<result>, <ResponseInfo>)
+            - result          成功返回空dict{}，失败返回{"error": "<errMsg string>"}
+            - ResponseInfo    请求的Response信息
+        """
+        ret, info = self.__post('GetProxyUser', {"reqUserId": username})
         return ret, info
 
     def recharge_traffic(self, username, req_order_no, traffic, validity_days):
@@ -219,7 +226,38 @@ class SparkProxyClient(object):
             - result          成功返回空dict{}，失败返回{"error": "<errMsg string>"}
             - ResponseInfo    请求的Response信息
         """
-        ret, info = self.__post('RechargeTraffic', {"username": username, "reqOrderNo": req_order_no, "traffic": traffic, "validityDays": validity_days})
+        ret, info = self.__post('RechargeTraffic', {"reqUserId": username, "reqOrderNo": req_order_no, "traffic": traffic, "validityDays": validity_days})
+        return ret, info
+
+    def get_traffic_record(self, req_order_no):
+        """获取流量充值订单信息
+
+        Args:
+            - req_order_no: 客方订单号
+
+        Returns:
+            返回一个tuple对象，其格式为(<result>, <ResponseInfo>)
+            - result          成功返回空dict{}，失败返回{"error": "<errMsg string>"}
+            - ResponseInfo    请求的Response信息
+        """
+        ret, info = self.__post('GetTrafficRecord', {"reqOrderNo": req_order_no})
+        return ret, info
+
+    def list_traffic_usages(self, username, start_time, end_time, type):
+        """获取流量使用记录
+
+        Args:
+            - username:  关联流量账号
+            - start_time: 开始时间, 可选参数, ex: 2024-05-01 00:00:00
+            - end_time: 结束时间, 可选参数, ex: 2024-07-01 00:00:00
+            - type: days / hours
+
+        Returns:
+            返回一个tuple对象，其格式为(<result>, <ResponseInfo>)
+            - result          成功返回空dict{}，失败返回{"error": "<errMsg string>"}
+            - ResponseInfo    请求的Response信息
+        """
+        ret, info = self.__post('ListTrafficUsage', {"reqUserId": username, "startTime": start_time, "endTime": end_time, "type": type})
         return ret, info
 
     def get_proxy_endpoints(self, country_code):
@@ -236,20 +274,180 @@ class SparkProxyClient(object):
         ret, info = self.__post('GetProxyEndpoints', {"countryCode": country_code})
         return ret, info
 
-    def __request_params(self, method, version, args):
-        base_params = {
-            "method": method,
-            "version": version if version is not None else "2024-04-08",
-            "reqId": str(uuid.uuid4()),
-            "timestamp": int(time.time()),
-            "supplierNo": self.auth.get_supplier_no(),
-            "sign": "",
-            "params": args
-        }
-        base_params["sign"] = self.auth.token_of_request(base_params)
-        return base_params
+    def custom_create_proxy(self, req_order_no, ips):
+        """手动创建代理账号
 
-    def __post(self, method, data=None, version=None):
-        url = '{0}/v1/open/api'.format(self.host)
-        req = self.__request_params(method, version, data)
-        return http._post(url, req)
+        Args:
+            - req_order_no: 订单号
+            - ips:  ip数组
+
+        Returns:
+            返回一个tuple对象，其格式为(<result>, <ResponseInfo>)
+            - result          成功返回空dict{}，失败返回{"error": "<errMsg string>"}
+            - ResponseInfo    请求的Response信息
+        """
+        ret, info = self.__post('CustomCreateProxy', {"ips": ips})
+        return ret, info
+
+    def custom_del_proxy(self, ips):
+        """ 手动删除代理账号
+
+        Args:
+            - ips:  ip数组
+
+        Returns:
+            返回一个tuple对象，其格式为(<result>, <ResponseInfo>)
+            - result          成功返回空dict{}，失败返回{"error": "<errMsg string>"}
+            - ResponseInfo    请求的Response信息
+        """
+        return self.__post('CustomDelProxy', {"ips": ips})
+
+    def create_resi_user(self, username, password, status):
+        """创建动态代理账号
+
+        Args:
+            - username:  客方用户ID
+            - password: 密码
+            - status: 1=状态 2=禁用
+
+        Returns:
+            返回一个tuple对象，其格式为(<result>, <ResponseInfo>)
+            - result          成功返回空dict{}，失败返回{"error": "<errMsg string>"}
+            - ResponseInfo    请求的Response信息
+        """
+        return self.__post('CreateUser', {"username": username, "password": password, "status": status})
+
+    def update_resi_user(self, username, password=None, status=None):
+        """更新动态代理账号
+
+        Args:
+            - username:  客方用户ID 必填
+            - password: 密码 可选
+            - status: 1=状态 2=禁用 可选
+
+        Returns:
+            返回一个tuple对象，其格式为(<result>, <ResponseInfo>)
+            - result          成功返回空dict{}，失败返回{"error": "<errMsg string>"}
+            - ResponseInfo    请求的Response信息
+        """
+        return self.__post('UpdateUser', {"username": username, "password": password, "status": status})
+
+    def get_resi_user_info(self, username):
+        """获取动态代理账号
+
+        Args:
+            - username:  客方用户ID 必填
+
+        Returns:
+            返回一个tuple对象，其格式为(<result>, <ResponseInfo>)
+            - result          成功返回空dict{}，失败返回{"error": "<errMsg string>"}
+            - ResponseInfo    请求的Response信息
+        """
+        return self.__post('GetUserInfo', {"username": username})
+
+    def create_resi_sub_user(self, main_username, username, password, status, usage_limit, remark):
+        """创建动态代理子账号
+
+        Args:
+            - main_username 客方主账号  必填
+            - username  客方子账号 必填
+            - password 代理认证密码 必填
+            - status 1-可用 2-禁用
+            - usage_limit 可用流量 MB
+            - remark 备注
+        Returns:
+            返回一个tuple对象，其格式为(<result>, <ResponseInfo>)
+            - result          成功返回空dict{}，失败返回{"error": "<errMsg string>"}
+            - ResponseInfo    请求的Response信息
+        """
+        return self.__post('CreateSubUser', {"mainUsername": main_username, "username": username, "password": password,
+                                             "status": status, "limitFlow": usage_limit, "remark": remark})
+
+    def update_resi_sub_user(self, main_username, username, password=None, status=None, usage_limit=None, remark=None):
+        """更新动态代理子账号
+
+        Args:
+            - main_username 客方主账号  必填
+            - username  客方子账号 必填
+            - password 代理认证密码 可选
+            - status 1-可用 2-禁用 可选
+            - usage_limit 可用流量 MB 可选
+            - remark 备注 可选
+        Returns:
+            返回一个tuple对象，其格式为(<result>, <ResponseInfo>)
+            - result          成功返回空dict{}，失败返回{"error": "<errMsg string>"}
+            - ResponseInfo    请求的Response信息
+        """
+        return self.__post('UpdateSubUser', {"mainUsername": main_username, "username": username, "password": password,
+                                             "status": status, "limitFlow": usage_limit, "remark": remark})
+
+    def distribute_flow(self, username, req_order_no, flow):
+        """分配流量
+
+        Args:
+            - username:  流量账号ID
+            - req_order_no: 客方订单号
+            - traffic: 流量MB
+
+        Returns:
+            返回一个tuple对象，其格式为(<result>, <ResponseInfo>)
+            - result          成功返回空dict{}，失败返回{"error": "<errMsg string>"}
+            - ResponseInfo    请求的Response信息
+        """
+        ret, info = self.__post('DistributeFlow',
+                                {"username": username, "reqOrderNo": req_order_no, "flow": flow})
+        return ret, info
+
+    def recycle_flow(self, username, req_order_no, flow):
+        """回收流量
+
+        Args:
+            - username:  流量账号ID
+            - req_order_no: 客方订单号
+            - traffic: 流量MB
+
+        Returns:
+            返回一个tuple对象，其格式为(<result>, <ResponseInfo>)
+            - result          成功返回空dict{}，失败返回{"error": "<errMsg string>"}
+            - ResponseInfo    请求的Response信息
+        """
+        ret, info = self.__post('RecycleFlow',
+                                {"username": username, "reqOrderNo": req_order_no, "flow": flow})
+        return ret, info
+
+    def get_dynamic_area(self, proxy_type, product_id):
+        """获取动态代理地区
+
+            Args:
+                - proxy_type:  代理类型 104
+                - product_id: 代理商品SKU
+
+            Returns:
+                返回一个tuple对象，其格式为(<result>, <ResponseInfo>)
+                - result          成功返回空dict{}，失败返回{"error": "<errMsg string>"}
+                - ResponseInfo    请求的Response信息
+            """
+        ret, info = self.__post('GetDynamicArea',
+                                {"proxyType": proxy_type, "productId": product_id})
+        return ret, info
+
+    def draw_dynamic_ips(self, username, region=None, sessTime=5, num=1, format='host:port:user:pass'):
+        """获取动态代理地区
+
+            Args:
+                - username 子账号 必填
+                - region IP区域 不填则全球混播
+                - sessTime 会话有效期 默认5分钟
+                - num 默认1
+                - format 默认 host:port:user:pass
+
+            Returns:
+                返回一个tuple对象，其格式为(<result>, <ResponseInfo>)
+                - result          成功返回空dict{}，失败返回{"error": "<errMsg string>"}
+                - ResponseInfo    请求的Response信息
+            """
+        ret, info = self.__post('DrawDynamicIp',
+                                {"username": username, "region": region, "sessTime": sessTime, "num": num,
+                                 "format": format})
+        return ret, info
+

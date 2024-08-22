@@ -1,23 +1,21 @@
 # -*- coding: utf-8 -*-
 # flake8: noqa
-
+from config import secret_key, supplier_no
 from sparkproxy import Auth
 from sparkproxy import SparkProxyClient
-from sparkproxy.config import SANDBOX_API_HOST
+from sparkproxy.config import DEV_API_HOST
+from utils import generate_order_id
 
-supplier_no = 'test0001'
-with open("key.pem", 'rb') as pem_file:
-    private_key = pem_file.read()
-client = SparkProxyClient(Auth(supplier_no=supplier_no, private_key=private_key), host=SANDBOX_API_HOST)
+client = SparkProxyClient(Auth(supplier_no=supplier_no, secret_key=secret_key), host=DEV_API_HOST)
 
-ret, info = client.get_product_stock2(proxy_type=103)
+ret, info = client.get_product_stock(proxy_type=103)
 if ret is not None:
     print(ret)
     print(info)
 
-    if ret['data'] is not None and len(ret['data']) > 0:
-        product = ret['data'][1]
-        ret, info = client.create_proxy(req_order_no="test_240517_01", sku=product["productId"], amount=1, duration=product["duration"]*2,
+    if ret['data'] is not None and len(ret['data']['products']) > 0:
+        product = ret['data']['products'][1]
+        ret, info = client.create_proxy(req_order_no=generate_order_id(), sku=product["productId"], amount=2, duration=product["duration"]*2,
                                         unit=product["unit"],
                                         country_code=product["countryCode"], area_code=product["areaCode"], city_code=product["cityCode"])
         print(ret)

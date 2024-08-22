@@ -27,6 +27,7 @@ def find_version(*file_paths):
 setup(
     name='sparkproxy',
     version=find_version("sparkproxy/__init__.py"),
+    include_package_data=True,
     description='Spark proxy OpenApi SDK',
     long_description='see:\nhttps://github.com/yungoo/spark-sdk-python\n',
     author='Spark Proxy Co., Ltd.',
@@ -57,7 +58,7 @@ setup(
         'requests; python_version >= "3.7"',
         'requests<2.28; python_version < "3.7"',
         'futures; python_version == "2.7"',
-        'cryptography'
+        'cryptography',
     ],
     extras_require={
         'dev': [
